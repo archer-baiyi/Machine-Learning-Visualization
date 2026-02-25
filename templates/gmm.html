@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gaussian Mixture Model, EM Algorithm Visualization</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background-color: #f4f6f9; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 10px 0; 
+            color: #333; 
+        }
+
+        /* New Top Navigation Bar */
+        .top-nav {
+            width: 820px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: flex-start;
+        }
+        .btn-back {
+            text-decoration: none;
+            color: #7f8c8d;
+            font-weight: bold;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .btn-back:hover { color: #3498db; }
+
+        h1 { 
+            margin: 0 0 10px 0; 
+            color: #2c3e50; 
+            font-size: 28px; 
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+        
+        .panel { 
+            background: #fff; 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08); 
+            margin-bottom: 8px; 
+            width: 820px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+            box-sizing: border-box; 
+        }
+
+        .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .row-header { font-weight: bold; width: 110px; color: #555; font-size: 14px; }
+        
+        label { font-size: 14px; color: #555; }
+        input[type="number"] { width: 55px; padding: 3px; border: 1px solid #ccc; border-radius: 4px; }
+        select { padding: 3px; border-radius: 4px; border: 1px solid #ccc; }
+        
+        button { padding: 5px 12px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; border: none; transition: 0.2s; }
+        .btn-primary { background-color: #3498db; color: white; }
+        .btn-primary:hover:not(:disabled) { background-color: #2980b9; }
+        .btn-success { background-color: #2ecc71; color: white; }
+        .btn-success:hover:not(:disabled) { background-color: #27ae60; }
+        .btn-danger { background-color: #e74c3c; color: white; }
+        .btn-danger:hover:not(:disabled) { background-color: #c0392b; }
+        .btn-secondary { background-color: #95a5a6; color: white; }
+        .btn-secondary:hover:not(:disabled) { background-color: #7f8c8d; }
+        .btn-warning { background-color: #f39c12; color: white; }
+        .btn-warning:hover:not(:disabled) { background-color: #d68910; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+
+        #status { 
+            font-size: 15px; 
+            font-weight: bold; 
+            color: #34495e; 
+            text-align: center; 
+            margin-bottom: 6px; 
+            min-height: 18px; 
+        }
+        
+        canvas { 
+            background-color: #ffffff; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            border-radius: 6px; 
+            border: 1px solid #ddd; 
+            cursor: crosshair; 
+            margin-bottom: 8px;
+        }
+        
+        .controls { 
+            display: flex; 
+            gap: 8px; 
+            justify-content: center; 
+            align-items: center; 
+            width: 820px;
+        }
+        
+        .divider { width: 1px; height: 24px; background-color: #ddd; margin: 0 4px; }
+        .instruction { font-size: 11px; color: #999; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="top-nav">
+        <a href="/" class="btn-back">&larr; Back to Dashboard</a>
+    </div>
+
+    <h1>Gaussian Mixture Model, EM Algorithm Visualization</h1>
+    
+    <div class="panel">
+        <div class="row">
+            <div class="row-header">1. Data Mode:</div>
+            <select id="dataMode" onchange="toggleMode()">
+                <option value="auto">Auto Generate (Parameters)</option>
+                <option value="click">Mouse Click (Custom)</option>
+            </select>
+            
+            <span id="autoSettings" class="row">
+                <label>Total Points: <input type="number" id="autoPoints" value="300" step="50"></label>
+                <label>True Clusters: <input type="number" id="autoClusters" value="3" min="1"></label>
+                <button class="btn-primary" onclick="generateAutoData()">Generate Data</button>
+            </span>
+            
+            <span id="clickSettings" class="row" style="display:none;">
+                <label>Points per Click: <input type="number" id="clickPoints" value="50" min="1"></label>
+                <span class="instruction">-> Click canvas to drop points.</span>
+            </span>
+            
+            <button class="btn-danger" style="margin-left:auto;" onclick="clearCanvas()">Clear Data</button>
+        </div>
+
+        <hr style="width: 100%; border: 0.5px solid #f2f2f2; margin: 2px 0;">
+
+        <div class="row">
+            <div class="row-header">2. GMM Setup:</div>
+            <label>Fit Clusters (K): <input type="number" id="gmmK" value="3" min="1"></label>
+            <button class="btn-success" onclick="initializeGMM()">Initialize GMM</button>
+            <button id="toggleGridBtn" class="btn-secondary" style="margin-left:auto;" onclick="toggleGrid()">Hide Grid</button>
+        </div>
+    </div>
+
+    <div id="status"></div>
+    
+    <canvas id="canvas" width="820" height="480"></canvas>
+    
+    <div class="controls">
+        <button id="btnPrevIter" class="btn-primary" onclick="sendAction('prev_iter')" disabled>⏪ Prev Iter</button>
+        <button id="btnPrevStep" class="btn-primary" onclick="sendAction('prev_step')" disabled>⬅ Prev Step</button>
+        <button id="btnNextStep" class="btn-primary" onclick="sendAction('next_step')" disabled>Next Step ➡</button>
+        <button id="btnNextIter" class="btn-primary" onclick="sendAction('next_iter')" disabled>Next Iter ⏩</button>
+        
+        <div class="divider"></div>
+        
+        <input type="number" id="jumpIters" value="10" min="1" style="width: 42px;" disabled>
+        <span style="font-size: 13px; font-weight: bold; color: #555;">Iters</span>
+        <button id="btnNextNIter" class="btn-warning" onclick="sendAction('next_n_iter')" disabled>Fast Forward ⏭</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('status');
+    
+    let datasetX = []; 
+    let isInitialized = false;
+    let serverData = null; 
+    let isGridVisible = true;
+
+    const minX = -5, maxX = 5;
+    const minY = -2.93, maxY = 2.93; 
+
+    function cx(x) { return ((x - minX) / (maxX - minX)) * canvas.width; }
+    function cy(y) { return canvas.height - ((y - minY) / (maxY - minY)) * canvas.height; }
+    function sx(px) { return (px / canvas.width) * (maxX - minX) + minX; }
+    function sy(py) { return maxY - (py / canvas.height) * (maxY - minY); }
+
+    function toggleGrid() {
+        isGridVisible = !isGridVisible;
+        document.getElementById('toggleGridBtn').innerText = isGridVisible ? "Hide Grid" : "Show Grid";
+        isInitialized ? renderGMMState() : renderRawData();
+    }
+
+    function drawGrid() {
+        if (!isGridVisible) return;
+        ctx.lineWidth = 1;
+        for(let x = Math.ceil(minX); x <= Math.floor(maxX); x++) {
+            ctx.beginPath();
+            ctx.moveTo(cx(x), 0); ctx.lineTo(cx(x), canvas.height);
+            ctx.strokeStyle = (x === 0) ? '#888' : '#eee';
+            ctx.lineWidth = (x === 0) ? 1.5 : 1; ctx.stroke();
+        }
+        for(let y = Math.ceil(minY); y <= Math.floor(maxY); y++) {
+            ctx.beginPath();
+            ctx.moveTo(0, cy(y)); ctx.lineTo(canvas.width, cy(y));
+            ctx.strokeStyle = (y === 0) ? '#888' : '#eee';
+            ctx.lineWidth = (y === 0) ? 1.5 : 1; ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(cx(0), cy(0), 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#555'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    function toggleMode() {
+        const mode = document.getElementById('dataMode').value;
+        document.getElementById('autoSettings').style.display = mode === 'auto' ? 'flex' : 'none';
+        document.getElementById('clickSettings').style.display = mode === 'click' ? 'flex' : 'none';
+        clearCanvas();
+    }
+
+    function togglePlaybackButtons(enabled) {
+        ['btnPrevIter', 'btnPrevStep', 'btnNextStep', 'btnNextIter', 'btnNextNIter', 'jumpIters'].forEach(id => {
+            document.getElementById(id).disabled = !enabled;
+        });
+    }
+
+    function randomGaussian() {
+        let u1 = Math.random(), u2 = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    }
+
+    function addData(centerX, centerY, count, isAuto) {
+        if (!isAuto && count === 1) {
+            datasetX.push([centerX, centerY]);
+        } else {
+            const stdX = isAuto ? (0.15 + Math.random() * 0.3) : 0.18;
+            const stdY = isAuto ? (0.15 + Math.random() * 0.3) : 0.18;
+            const theta = isAuto ? (Math.random() * Math.PI) : 0;
+            const cosT = Math.cos(theta), sinT = Math.sin(theta);
+            for(let i = 0; i < count; i++) {
+                let z1 = randomGaussian() * stdX, z2 = randomGaussian() * stdY;
+                let x = centerX + z1 * cosT - z2 * sinT;
+                let y = centerY + z1 * sinT + z2 * cosT;
+                datasetX.push([Math.max(minX, Math.min(maxX, x)), Math.max(minY, Math.min(maxY, y))]);
+            }
+        }
+    }
+
+    function generateAutoData() {
+        clearCanvas();
+        const clusters = parseInt(document.getElementById('autoClusters').value);
+        const pts = Math.floor(parseInt(document.getElementById('autoPoints').value) / clusters);
+        for(let c = 0; c < clusters; c++) {
+            let rx = (minX + 2) + Math.random() * (maxX - minX - 4);
+            let ry = (minY + 1.2) + Math.random() * (maxY - minY - 2.4);
+            addData(rx, ry, pts, true);
+        }
+        renderRawData();
+    }
+
+    canvas.addEventListener('mousedown', function(e) {
+        if (isInitialized || document.getElementById('dataMode').value !== 'click') return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = sx(e.clientX - rect.left), my = sy(e.clientY - rect.top);
+        addData(mx, my, parseInt(document.getElementById('clickPoints').value), false);
+        renderRawData();
+    });
+
+    function clearCanvas() {
+        datasetX = []; isInitialized = false; serverData = null;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGrid(); 
+        statusText.innerText = ""; 
+        togglePlaybackButtons(false);
+    }
+
+    function initializeGMM() {
+        if(datasetX.length === 0) return;
+        
+        // --- UPDATED API ENDPOINT TO /api/gmm/init ---
+        fetch('/api/gmm/init', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ X: datasetX, K: parseInt(document.getElementById('gmmK').value) })
+        }).then(res => res.json()).then(data => {
+            serverData = data; isInitialized = true; togglePlaybackButtons(true); renderGMMState();
+        });
+    }
+
+    function sendAction(action) {
+        let n = document.getElementById('jumpIters').value;
+        
+        // --- UPDATED API ENDPOINT TO /api/gmm/action ---
+        fetch('/api/gmm/action', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: action, n: n })
+        }).then(res => res.json()).then(data => {
+            serverData = data; renderGMMState();
+        });
+    }
+
+    function renderRawData() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid();
+        ctx.fillStyle = '#95a5a6';
+        datasetX.forEach(p => {
+            ctx.beginPath(); ctx.arc(cx(p[0]), cy(p[1]), 3.5, 0, Math.PI * 2); ctx.fill();
+        });
+        if (datasetX.length > 0) statusText.innerText = ""; 
+    }
+
+    function renderGMMState() {
+        const d = serverData; if(!d) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid();
+        const palette = [[231, 76, 60], [52, 152, 219], [46, 204, 113], [155, 89, 182], [241, 196, 15], [230, 126, 34], [26, 188, 156]];
+        
+        for (let n = 0; n < d.X.length; n++) {
+            let r=0, g=0, b=0;
+            if (d.step_count === 0) { r=g=b=150; }
+            else {
+                for (let k = 0; k < d.K; k++) {
+                    let c = palette[k % palette.length];
+                    r += d.resps[n][k] * c[0]; g += d.resps[n][k] * c[1]; b += d.resps[n][k] * c[2];
+                }
+            }
+            ctx.beginPath(); ctx.arc(cx(d.X[n][0]), cy(d.X[n][1]), 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`; ctx.fill();
+        }
+
+        for(let k = 0; k < d.K; k++) {
+            let mean = d.means[k], cov = d.covs[k], c = palette[k % palette.length];
+            let a = cov[0][0], b_cov = cov[0][1], cc = cov[1][1];
+            let trace = a + cc, det = a * cc - b_cov * b_cov;
+            let l1 = (trace + Math.sqrt(Math.max(0, trace * trace - 4 * det))) / 2;
+            let l2 = (trace - Math.sqrt(Math.max(0, trace * trace - 4 * det))) / 2;
+            let ang = (b_cov === 0) ? (a > cc ? 0 : Math.PI/2) : Math.atan2(l1 - a, b_cov);
+            let mx = cx(mean[0]), my = cy(mean[1]);
+            let r1 = (Math.sqrt(l1) / (maxX - minX)) * canvas.width;
+            let r2 = (Math.sqrt(l2) / (maxX - minX)) * canvas.width;
+
+            for (let nsig = 1; nsig <= 3; nsig++) {
+                ctx.beginPath(); ctx.ellipse(mx, my, r1 * nsig, r2 * nsig, -ang, 0, 2 * Math.PI);
+                ctx.strokeStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${0.8 - nsig*0.2})`;
+                ctx.lineWidth = 1.8; ctx.stroke();
+            }
+            ctx.beginPath(); ctx.strokeStyle = `rgb(${c[0]}, ${c[1]}, ${c[2]})`; ctx.lineWidth = 2.5;
+            ctx.moveTo(mx-7, my-7); ctx.lineTo(mx+7, my+7); ctx.moveTo(mx+7, my-7); ctx.lineTo(mx-7, my+7); ctx.stroke();
+        }
+        
+        statusText.innerText = `Iteration: ${d.iteration} | Action: ${d.current_action}`;
+        document.getElementById('btnPrevStep').disabled = (d.step_count === 0);
+        document.getElementById('btnPrevIter').disabled = (d.step_count < 2);
+    }
+
+    clearCanvas();
+</script>
+</body>
+</html>

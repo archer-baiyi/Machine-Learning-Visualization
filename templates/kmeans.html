@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>K-Means Clustering Visualization</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f6f9; display: flex; flex-direction: column; align-items: center; margin: 10px 0; color: #333; }
+        .top-nav { width: 820px; margin-bottom: 5px; display: flex; justify-content: flex-start; }
+        .btn-back { text-decoration: none; color: #7f8c8d; font-weight: bold; font-size: 14px; transition: color 0.2s; }
+        .btn-back:hover { color: #2ecc71; }
+        h1 { margin: 0 0 10px 0; color: #2c3e50; font-size: 28px; letter-spacing: 1px; font-weight: 700; }
+        .panel { background: #fff; padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 8px; width: 820px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; }
+        .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .row-header { font-weight: bold; width: 110px; color: #555; font-size: 14px; }
+        label { font-size: 14px; color: #555; }
+        input[type="number"] { width: 55px; padding: 3px; border: 1px solid #ccc; border-radius: 4px; }
+        select { padding: 3px; border-radius: 4px; border: 1px solid #ccc; }
+        button { padding: 5px 12px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; border: none; transition: 0.2s; }
+        .btn-primary { background-color: #2ecc71; color: white; } /* Green theme for KMeans */
+        .btn-primary:hover:not(:disabled) { background-color: #27ae60; }
+        .btn-success { background-color: #3498db; color: white; } /* Blue for init to differentiate */
+        .btn-success:hover:not(:disabled) { background-color: #2980b9; }
+        .btn-danger { background-color: #e74c3c; color: white; }
+        .btn-danger:hover:not(:disabled) { background-color: #c0392b; }
+        .btn-secondary { background-color: #95a5a6; color: white; }
+        .btn-secondary:hover:not(:disabled) { background-color: #7f8c8d; }
+        .btn-warning { background-color: #f39c12; color: white; }
+        .btn-warning:hover:not(:disabled) { background-color: #d68910; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        #status { font-size: 15px; font-weight: bold; color: #34495e; text-align: center; margin-bottom: 6px; min-height: 18px; }
+        canvas { background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 6px; border: 1px solid #ddd; cursor: crosshair; margin-bottom: 8px; }
+        .controls { display: flex; gap: 8px; justify-content: center; align-items: center; width: 820px; }
+        .divider { width: 1px; height: 24px; background-color: #ddd; margin: 0 4px; }
+        .instruction { font-size: 11px; color: #999; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="top-nav"><a href="/" class="btn-back">&larr; Back to Dashboard</a></div>
+    <h1>K-Means Clustering Visualization</h1>
+    
+    <div class="panel">
+        <div class="row">
+            <div class="row-header">1. Data Mode:</div>
+            <select id="dataMode" onchange="toggleMode()">
+                <option value="auto">Auto Generate (Parameters)</option>
+                <option value="click">Mouse Click (Custom)</option>
+            </select>
+            <span id="autoSettings" class="row">
+                <label>Total Points: <input type="number" id="autoPoints" value="300" step="50"></label>
+                <label>True Clusters: <input type="number" id="autoClusters" value="3" min="1"></label>
+                <button class="btn-primary" onclick="generateAutoData()">Generate Data</button>
+            </span>
+            <span id="clickSettings" class="row" style="display:none;">
+                <label>Points per Click: <input type="number" id="clickPoints" value="50" min="1"></label>
+                <span class="instruction">-> Click canvas to drop points.</span>
+            </span>
+            <button class="btn-danger" style="margin-left:auto;" onclick="clearCanvas()">Clear Data</button>
+        </div>
+        <hr style="width: 100%; border: 0.5px solid #f2f2f2; margin: 2px 0;">
+        <div class="row">
+            <div class="row-header">2. KMeans Setup:</div>
+            <label>Fit Clusters (K): <input type="number" id="kmeansK" value="3" min="1"></label>
+            <button class="btn-success" onclick="initializeKMeans()">Initialize K-Means</button>
+            <button id="toggleGridBtn" class="btn-secondary" style="margin-left:auto;" onclick="toggleGrid()">Hide Grid</button>
+        </div>
+    </div>
+
+    <div id="status"></div>
+    <canvas id="canvas" width="820" height="480"></canvas>
+    
+    <div class="controls">
+        <button id="btnPrevIter" class="btn-primary" onclick="sendAction('prev_iter')" disabled>⏪ Prev Iter</button>
+        <button id="btnPrevStep" class="btn-primary" onclick="sendAction('prev_step')" disabled>⬅ Prev Step</button>
+        <button id="btnNextStep" class="btn-primary" onclick="sendAction('next_step')" disabled>Next Step ➡</button>
+        <button id="btnNextIter" class="btn-primary" onclick="sendAction('next_iter')" disabled>Next Iter ⏩</button>
+        <div class="divider"></div>
+        <input type="number" id="jumpIters" value="10" min="1" style="width: 42px;" disabled>
+        <span style="font-size: 13px; font-weight: bold; color: #555;">Iters</span>
+        <button id="btnNextNIter" class="btn-warning" onclick="sendAction('next_n_iter')" disabled>Fast Forward ⏭</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('status');
+    
+    let datasetX = []; let isInitialized = false; let serverData = null; let isGridVisible = true;
+    const minX = -5, maxX = 5; const minY = -2.93, maxY = 2.93; 
+
+    function cx(x) { return ((x - minX) / (maxX - minX)) * canvas.width; }
+    function cy(y) { return canvas.height - ((y - minY) / (maxY - minY)) * canvas.height; }
+    function sx(px) { return (px / canvas.width) * (maxX - minX) + minX; }
+    function sy(py) { return maxY - (py / canvas.height) * (maxY - minY); }
+
+    function toggleGrid() { isGridVisible = !isGridVisible; document.getElementById('toggleGridBtn').innerText = isGridVisible ? "Hide Grid" : "Show Grid"; isInitialized ? renderKMeansState() : renderRawData(); }
+
+    function drawGrid() {
+        if (!isGridVisible) return;
+        ctx.lineWidth = 1;
+        for(let x = Math.ceil(minX); x <= Math.floor(maxX); x++) {
+            ctx.beginPath(); ctx.moveTo(cx(x), 0); ctx.lineTo(cx(x), canvas.height);
+            ctx.strokeStyle = (x === 0) ? '#888' : '#eee'; ctx.lineWidth = (x === 0) ? 1.5 : 1; ctx.stroke();
+        }
+        for(let y = Math.ceil(minY); y <= Math.floor(maxY); y++) {
+            ctx.beginPath(); ctx.moveTo(0, cy(y)); ctx.lineTo(canvas.width, cy(y));
+            ctx.strokeStyle = (y === 0) ? '#888' : '#eee'; ctx.lineWidth = (y === 0) ? 1.5 : 1; ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(cx(0), cy(0), 4, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#555'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    function toggleMode() { const mode = document.getElementById('dataMode').value; document.getElementById('autoSettings').style.display = mode === 'auto' ? 'flex' : 'none'; document.getElementById('clickSettings').style.display = mode === 'click' ? 'flex' : 'none'; clearCanvas(); }
+    function togglePlaybackButtons(e) { ['btnPrevIter', 'btnPrevStep', 'btnNextStep', 'btnNextIter', 'btnNextNIter', 'jumpIters'].forEach(id => { document.getElementById(id).disabled = !e; }); }
+    function randomGaussian() { let u1 = Math.random(), u2 = Math.random(); return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2); }
+
+    function addData(centerX, centerY, count, isAuto) {
+        if (!isAuto && count === 1) { datasetX.push([centerX, centerY]); } else {
+            const stdX = isAuto ? (0.15 + Math.random() * 0.3) : 0.18;
+            const stdY = isAuto ? (0.15 + Math.random() * 0.3) : 0.18;
+            const theta = isAuto ? (Math.random() * Math.PI) : 0;
+            const cosT = Math.cos(theta), sinT = Math.sin(theta);
+            for(let i = 0; i < count; i++) {
+                let z1 = randomGaussian() * stdX, z2 = randomGaussian() * stdY;
+                let x = centerX + z1 * cosT - z2 * sinT; let y = centerY + z1 * sinT + z2 * cosT;
+                datasetX.push([Math.max(minX, Math.min(maxX, x)), Math.max(minY, Math.min(maxY, y))]);
+            }
+        }
+    }
+
+    function generateAutoData() {
+        clearCanvas();
+        const clusters = parseInt(document.getElementById('autoClusters').value);
+        const pts = Math.floor(parseInt(document.getElementById('autoPoints').value) / clusters);
+        for(let c = 0; c < clusters; c++) {
+            let rx = (minX + 2) + Math.random() * (maxX - minX - 4);
+            let ry = (minY + 1.2) + Math.random() * (maxY - minY - 2.4);
+            addData(rx, ry, pts, true);
+        }
+        renderRawData();
+    }
+
+    canvas.addEventListener('mousedown', function(e) {
+        if (isInitialized || document.getElementById('dataMode').value !== 'click') return;
+        const rect = canvas.getBoundingClientRect();
+        addData(sx(e.clientX - rect.left), sy(e.clientY - rect.top), parseInt(document.getElementById('clickPoints').value), false);
+        renderRawData();
+    });
+
+    function clearCanvas() { datasetX = []; isInitialized = false; serverData = null; ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid(); statusText.innerText = ""; togglePlaybackButtons(false); }
+
+    function initializeKMeans() {
+        if(datasetX.length === 0) return;
+        fetch('/api/kmeans/init', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ X: datasetX, K: parseInt(document.getElementById('kmeansK').value) })
+        }).then(res => res.json()).then(data => { serverData = data; isInitialized = true; togglePlaybackButtons(true); renderKMeansState(); });
+    }
+
+    function sendAction(action) {
+        fetch('/api/kmeans/action', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: action, n: document.getElementById('jumpIters').value })
+        }).then(res => res.json()).then(data => { serverData = data; renderKMeansState(); });
+    }
+
+    function renderRawData() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid(); ctx.fillStyle = '#95a5a6';
+        datasetX.forEach(p => { ctx.beginPath(); ctx.arc(cx(p[0]), cy(p[1]), 3.5, 0, Math.PI * 2); ctx.fill(); });
+        if (datasetX.length > 0) statusText.innerText = ""; 
+    }
+
+    function renderKMeansState() {
+        const d = serverData; if(!d) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid();
+        const palette = [[46, 204, 113], [52, 152, 219], [231, 76, 60], [155, 89, 182], [241, 196, 15], [230, 126, 34], [26, 188, 156]];
+        
+        // Render Points (Hard Assignment)
+        for (let n = 0; n < d.X.length; n++) {
+            let label = d.labels[n];
+            ctx.beginPath(); ctx.arc(cx(d.X[n][0]), cy(d.X[n][1]), 4.5, 0, Math.PI * 2);
+            if (label === -1) {
+                ctx.fillStyle = '#95a5a6'; // Unassigned
+            } else {
+                let c = palette[label % palette.length];
+                ctx.fillStyle = `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+            }
+            ctx.fill();
+            // Slight stroke for clarity
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.stroke();
+        }
+
+        // Render Centroids (Big X marks)
+        for(let k = 0; k < d.K; k++) {
+            let cx_pos = cx(d.centroids[k][0]), cy_pos = cy(d.centroids[k][1]);
+            let c = palette[k % palette.length];
+            
+            ctx.beginPath();
+            ctx.strokeStyle = '#2c3e50'; // Dark border to stand out
+            ctx.lineWidth = 4;
+            ctx.moveTo(cx_pos - 10, cy_pos - 10); ctx.lineTo(cx_pos + 10, cy_pos + 10);
+            ctx.moveTo(cx_pos + 10, cy_pos - 10); ctx.lineTo(cx_pos - 10, cy_pos + 10);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.strokeStyle = `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+            ctx.lineWidth = 2.5;
+            ctx.moveTo(cx_pos - 10, cy_pos - 10); ctx.lineTo(cx_pos + 10, cy_pos + 10);
+            ctx.moveTo(cx_pos + 10, cy_pos - 10); ctx.lineTo(cx_pos - 10, cy_pos + 10);
+            ctx.stroke();
+        }
+        
+        statusText.innerText = `Iteration: ${d.iteration} | Action: ${d.current_action}`;
+        document.getElementById('btnPrevStep').disabled = (d.step_count === 0);
+        document.getElementById('btnPrevIter').disabled = (d.step_count < 2);
+    }
+
+    clearCanvas();
+</script>
+</body>
+</html>
