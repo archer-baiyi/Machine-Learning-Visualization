@@ -16,9 +16,9 @@
         input[type="number"] { width: 55px; padding: 3px; border: 1px solid #ccc; border-radius: 4px; }
         select { padding: 3px; border-radius: 4px; border: 1px solid #ccc; }
         button { padding: 5px 12px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; border: none; transition: 0.2s; }
-        .btn-primary { background-color: #2ecc71; color: white; } /* Green theme for KMeans */
+        .btn-primary { background-color: #2ecc71; color: white; } 
         .btn-primary:hover:not(:disabled) { background-color: #27ae60; }
-        .btn-success { background-color: #3498db; color: white; } /* Blue for init to differentiate */
+        .btn-success { background-color: #3498db; color: white; } 
         .btn-success:hover:not(:disabled) { background-color: #2980b9; }
         .btn-danger { background-color: #e74c3c; color: white; }
         .btn-danger:hover:not(:disabled) { background-color: #c0392b; }
@@ -171,42 +171,58 @@
 
     function renderKMeansState() {
         const d = serverData; if(!d) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid();
-        const palette = [[46, 204, 113], [52, 152, 219], [231, 76, 60], [155, 89, 182], [241, 196, 15], [230, 126, 34], [26, 188, 156]];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Render Points (Hard Assignment)
+        const palette = [[46, 204, 113], [52, 152, 219], [231, 76, 60], [155, 89, 182], [241, 196, 15], [230, 126, 34], [26, 188, 156]];
+
+        // --- 1. 绘制 Voronoi 背景 (决策边界) ---
+        // 【关键修改】resolution = 1 表示逐像素绘制，消除锯齿
+        if (d.centroids && d.centroids.length > 0 && d.step_count > 0) {
+            const resolution = 1; 
+            for (let x = 0; x < canvas.width; x += resolution) {
+                for (let y = 0; y < canvas.height; y += resolution) {
+                    let px = sx(x), py = sy(y);
+                    let minDist = Infinity;
+                    let closestK = -1;
+                    for (let k = 0; k < d.K; k++) {
+                        let cx_pos = d.centroids[k][0], cy_pos = d.centroids[k][1];
+                        let dist = (px - cx_pos) * (px - cx_pos) + (py - cy_pos) * (py - cy_pos);
+                        if (dist < minDist) { minDist = dist; closestK = k; }
+                    }
+                    if (closestK !== -1) {
+                        let c = palette[closestK % palette.length];
+                        ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.12)`; 
+                        // 绘制 1x1 的像素点
+                        ctx.fillRect(x, y, resolution, resolution);
+                    }
+                }
+            }
+        }
+
+        // (已移除虚线和圆圈绘制代码)
+
+        drawGrid(); 
+        
+        // Render Points
         for (let n = 0; n < d.X.length; n++) {
             let label = d.labels[n];
             ctx.beginPath(); ctx.arc(cx(d.X[n][0]), cy(d.X[n][1]), 4.5, 0, Math.PI * 2);
-            if (label === -1) {
-                ctx.fillStyle = '#95a5a6'; // Unassigned
-            } else {
-                let c = palette[label % palette.length];
-                ctx.fillStyle = `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+            if (label === -1) { ctx.fillStyle = '#95a5a6'; } else {
+                let c = palette[label % palette.length]; ctx.fillStyle = `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
             }
-            ctx.fill();
-            // Slight stroke for clarity
-            ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.stroke();
         }
 
-        // Render Centroids (Big X marks)
+        // Render Centroids
         for(let k = 0; k < d.K; k++) {
             let cx_pos = cx(d.centroids[k][0]), cy_pos = cy(d.centroids[k][1]);
             let c = palette[k % palette.length];
-            
-            ctx.beginPath();
-            ctx.strokeStyle = '#2c3e50'; // Dark border to stand out
-            ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 4;
             ctx.moveTo(cx_pos - 10, cy_pos - 10); ctx.lineTo(cx_pos + 10, cy_pos + 10);
-            ctx.moveTo(cx_pos + 10, cy_pos - 10); ctx.lineTo(cx_pos - 10, cy_pos + 10);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.strokeStyle = `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-            ctx.lineWidth = 2.5;
+            ctx.moveTo(cx_pos + 10, cy_pos - 10); ctx.lineTo(cx_pos - 10, cy_pos + 10); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = `rgb(${c[0]}, ${c[1]}, ${c[2]})`; ctx.lineWidth = 2.5;
             ctx.moveTo(cx_pos - 10, cy_pos - 10); ctx.lineTo(cx_pos + 10, cy_pos + 10);
-            ctx.moveTo(cx_pos + 10, cy_pos - 10); ctx.lineTo(cx_pos - 10, cy_pos + 10);
-            ctx.stroke();
+            ctx.moveTo(cx_pos + 10, cy_pos - 10); ctx.lineTo(cx_pos - 10, cy_pos + 10); ctx.stroke();
         }
         
         statusText.innerText = `Iteration: ${d.iteration} | Action: ${d.current_action}`;
