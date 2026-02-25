@@ -4,119 +4,21 @@
     <meta charset="UTF-8">
     <title>Machine Learning Algorithm Visualizations</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, sans-serif; 
-            background-color: #f4f6f9; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            margin: 50px 0; 
-            color: #333; 
-        }
-
-        h1 { 
-            margin: 0 0 10px 0; 
-            color: #2c3e50; 
-            font-size: 36px; 
-            letter-spacing: 1px;
-            font-weight: 700;
-        }
-        
-        .subtitle {
-            color: #7f8c8d;
-            font-size: 18px;
-            margin-bottom: 40px;
-        }
-
-        /* --- 新增的分类容器样式 --- */
-        .category-section {
-            width: 100%;
-            max-width: 1070px; /* 恰好容纳一行三个卡片 */
-            margin-bottom: 40px;
-        }
-
-        .category-title {
-            color: #34495e;
-            font-size: 24px;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e0e6ed; /* 优雅的分割线 */
-            width: 100%;
-            text-align: left;
-        }
-
-        /* Dashboard Grid Layout 调整为左对齐 */
-        .dashboard {
-            display: flex;
-            gap: 25px;
-            flex-wrap: wrap;
-            justify-content: flex-start;
-        }
-
-        /* Algorithm Card */
-        .card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            width: 340px;
-            padding: 25px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            display: flex;
-            flex-direction: column;
-            border-top: 5px solid #3498db; /* Default Blue */
-            box-sizing: border-box;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-
-        .card h3 {
-            margin: 0 0 10px 0;
-            color: #2c3e50;
-            font-size: 22px;
-        }
-
-        .card p {
-            color: #7f8c8d;
-            font-size: 14px;
-            line-height: 1.5;
-            margin: 0 0 25px 0;
-            flex-grow: 1;
-        }
-
-        .btn-launch {
-            text-align: center;
-            background-color: #3498db;
-            color: white;
-            padding: 12px;
-            text-decoration: none;
-            font-weight: bold;
-            border-radius: 6px;
-            transition: background 0.2s;
-        }
-
-        .btn-launch:hover {
-            background-color: #2980b9;
-        }
-
-        /* Disabled Card (Coming Soon) */
-        .card.disabled {
-            border-top: 5px solid #bdc3c7;
-            opacity: 0.6;
-        }
-        .card.disabled .btn-launch {
-            background-color: #bdc3c7;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        /* Custom Accents */
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f6f9; display: flex; flex-direction: column; align-items: center; margin: 50px 0; color: #333; }
+        h1 { margin: 0 0 10px 0; color: #2c3e50; font-size: 36px; letter-spacing: 1px; font-weight: 700; }
+        .subtitle { color: #7f8c8d; font-size: 18px; margin-bottom: 40px; }
+        .category-section { width: 100%; max-width: 1070px; margin-bottom: 40px; }
+        .category-title { color: #34495e; font-size: 24px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e0e6ed; width: 100%; text-align: left; }
+        .dashboard { display: flex; gap: 25px; flex-wrap: wrap; justify-content: flex-start; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 340px; padding: 25px; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; border-top: 5px solid #3498db; box-sizing: border-box; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .card h3 { margin: 0 0 10px 0; color: #2c3e50; font-size: 22px; }
+        .card p { color: #7f8c8d; font-size: 14px; line-height: 1.5; margin: 0 0 25px 0; flex-grow: 1; }
+        .btn-launch { text-align: center; background-color: #3498db; color: white; padding: 12px; text-decoration: none; font-weight: bold; border-radius: 6px; transition: background 0.2s; }
+        .btn-launch:hover { background-color: #2980b9; }
         .card.kmeans { border-top: 5px solid #2ecc71; }
         .card.kmeans .btn-launch { background-color: #2ecc71; }
         .card.kmeans .btn-launch:hover { background-color: #27ae60; }
-
         .card.svm { border-top: 5px solid #e74c3c; }
         .card.svm .btn-launch { background-color: #e74c3c; }
         .card.svm .btn-launch:hover { background-color: #c0392b; }
@@ -128,15 +30,13 @@
     <div class="subtitle">Interactive educational tools for exploring ML algorithms</div>
     
     <div class="category-section">
-        <h2 class="category-title">Clustering</h2>
-        
+        <h2 class="category-title">Clustering (Unsupervised)</h2>
         <div class="dashboard">
             <div class="card">
                 <h3>Gaussian Mixture Model (EM)</h3>
                 <p>Visualize the Expectation-Maximization algorithm fitting a Gaussian Mixture Model. Watch as the distribution clusters converge iteratively over soft assignments.</p>
                 <a href="/gmm" class="btn-launch">Launch GMM &rarr;</a>
             </div>
-
             <div class="card kmeans">
                 <h3>K-Means Clustering</h3>
                 <p>Explore hard assignment clustering. Watch centroids adjust iteratively to minimize variance within distinct groups, assigning each point to the nearest center.</p>
@@ -146,13 +46,12 @@
     </div>
 
     <div class="category-section">
-        <h2 class="category-title">Support Vector Machines (SVM)</h2>
-        
+        <h2 class="category-title">Classification (Supervised)</h2>
         <div class="dashboard">
-            <div class="card svm disabled">
-                <h3>Linear & Non-Linear SVM</h3>
-                <p>Visualize the maximal margin hyperplane separating classes and explore the effect of different kernels (RBF, Polynomial) on non-linear data.<br><br><i>(Coming Soon)</i></p>
-                <a href="#" class="btn-launch">Launch SVM &rarr;</a>
+            <div class="card svm">
+                <h3>Linear SVM (Gradient Descent)</h3>
+                <p>Visualize the maximal margin hyperplane separating two classes. Watch the decision boundary and margins actively optimize the Hinge Loss using gradient descent.</p>
+                <a href="/svm" class="btn-launch">Launch SVM &rarr;</a>
             </div>
         </div>
     </div>

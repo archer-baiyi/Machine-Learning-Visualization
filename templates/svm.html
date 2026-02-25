@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Linear SVM Visualization</title>
+    <style>
+        /* --- 全新设计语言：现代极简实验室 --- */
+        :root {
+            --bg-app: #f8f9fa;
+            --bg-panel: #ffffff;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --accent-blue: #0d6efd; /* 专业实验室蓝 */
+            --accent-blue-hover: #0b5ed7;
+            --accent-red: #dc3545;
+            --border-light: #e9ecef;
+            --shadow-soft: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.03);
+            --shadow-floating: 0 20px 40px -10px rgba(0,0,0,0.1);
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-app);
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 30px 0; 
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        /* 顶部导航与标题 - 更轻盈 */
+        .top-nav { width: 860px; margin-bottom: 15px; }
+        .btn-back { 
+            text-decoration: none; color: var(--text-secondary); font-weight: 600; font-size: 14px; 
+            display: inline-flex; align-items: center; transition: color 0.2s;
+        }
+        .btn-back:hover { color: var(--accent-blue); }
+        
+        h1 { 
+            margin: 0 0 25px 0; color: var(--text-primary); font-size: 32px; 
+            font-weight: 800; letter-spacing: -0.5px; text-align: center;
+        }
+        
+        /* 左右布局容器 - 增加间距 */
+        .settings-grid {
+            display: flex;
+            gap: 25px;
+            width: 860px;
+            margin-bottom: 20px;
+        }
+
+        /* 全新卡片设计 - 无边框，柔和投影 */
+        .config-card {
+            background: var(--bg-panel);
+            border-radius: 16px;
+            box-shadow: var(--shadow-soft);
+            padding: 25px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .config-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-floating);
+        }
+
+        /* 标题设计 - 更小、更精致的大写标签 */
+        .card-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        /* 行布局保持不变 */
+        .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        
+        /* 表单元素 - 现代填充风格 */
+        label { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+        
+        input[type="number"], select { 
+            background-color: #f1f3f5;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: all 0.2s;
+            outline: none;
+        }
+        input[type="number"]:focus, select:focus {
+            background-color: #fff;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+        }
+        input[type="number"] { width: 65px; text-align: center; }
+
+        /* 按钮重新设计 - 扁平化、圆润 */
+        button { 
+            padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 10px; 
+            cursor: pointer; border: none; transition: all 0.2s; 
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        button:active { transform: scale(0.98); }
+        button:disabled { background-color: #e9ecef !important; color: #adb5bd !important; cursor: not-allowed; transform: none; box-shadow: none;}
+
+        /* 主要操作按钮 (Next, Init) - 专业蓝 */
+        .btn-primary, .btn-success { background-color: var(--accent-blue); color: white; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25); }
+        .btn-primary:hover:not(:disabled), .btn-success:hover:not(:disabled) { background-color: var(--accent-blue-hover); box-shadow: 0 6px 15px rgba(13, 110, 253, 0.35); }
+        .btn-success { width: 100%; padding: 12px 0; font-size: 15px; } /* 强调 Init 按钮 */
+
+        /* 次要/危险按钮 - 灰色系，低调 */
+        .btn-danger, .btn-secondary { background-color: #e9ecef; color: var(--text-primary); }
+        .btn-danger:hover:not(:disabled), .btn-secondary:hover:not(:disabled) { background-color: #dee2e6; color: var(--text-primary); }
+        .btn-danger { color: var(--accent-red); } /* Clear 按钮带点红色警示 */
+
+        /* 快进按钮 - 橙色点缀 */
+        .btn-warning { background-color: #fd7e14; color: white; box-shadow: 0 4px 12px rgba(253, 126, 20, 0.25);}
+        .btn-warning:hover:not(:disabled) { background-color: #e87313; }
+        
+        /* 极简状态栏 */
+        .status-terminal {
+            width: 860px;
+            text-align: center;
+            font-size: 15px; font-weight: 600; color: var(--accent-blue);
+            margin-bottom: 15px; min-height: 24px;
+        }
+        
+        /* 画布 - 悬浮感 */
+        canvas { 
+            background-color: #ffffff; 
+            border-radius: 16px;
+            box-shadow: var(--shadow-soft);
+            cursor: crosshair; 
+            margin-bottom: 25px;
+        }
+        
+        /* 全新悬浮播放控制条 - 白色极简胶囊 */
+        .playback-bar { 
+            background-color: var(--bg-panel);
+            padding: 10px 25px;
+            border-radius: 50px; 
+            box-shadow: var(--shadow-floating);
+            display: flex; gap: 15px; justify-content: center; align-items: center; 
+        }
+        .playback-bar button { border-radius: 50px; padding: 10px 24px; }
+        .playback-bar input { background-color: #f1f3f5; border: none; }
+        .divider { width: 1px; height: 24px; background-color: var(--border-light); margin: 0 10px; }
+        .playback-label { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+        
+        /* 类别选择器优化 */
+        .class-selector { background-color: #f8f9fa; padding: 6px 12px; border-radius: 10px; }
+        .class-label { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; font-size: 14px; color: var(--text-primary); }
+        .color-dot { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .instruction { font-size: 12px; color: var(--text-secondary); margin-left: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="top-nav"><a href="/" class="btn-back">&larr; Back to Dashboard</a></div>
+    <h1>Linear SVM Visualization</h1>
+    
+    <div class="settings-grid">
+        <div class="config-card">
+            <div class="card-title">1. Data Mode</div>
+            <div class="row">
+                <select id="dataMode" onchange="toggleMode()">
+                    <option value="auto">Auto Generate (Linearly Separable)</option>
+                    <option value="click">Mouse Click (Custom)</option>
+                </select>
+                <button class="btn-danger" style="margin-left:auto;" onclick="clearCanvas()">Clear Data</button>
+            </div>
+            
+            <div id="autoSettings" class="row">
+                <label>Total Points:</label> <input type="number" id="autoPoints" value="100" step="20">
+                <button class="btn-secondary" onclick="generateAutoData()">Generate Data</button>
+            </div>
+            
+            <div id="clickSettings" class="row" style="display:none;">
+                <div class="class-selector">
+                    <label class="class-label"><input type="radio" name="svmClass" value="1" checked><span class="color-dot color-blue"></span> Class +1</label>
+                    <label class="class-label"><input type="radio" name="svmClass" value="-1"><span class="color-dot color-red"></span> Class -1</label>
+                </div>
+                <span class="instruction">Click canvas to add</span>
+            </div>
+        </div>
+
+        <div class="config-card">
+            <div class="card-title">2. SVM Setup</div>
+            <div class="row" style="justify-content: space-between;">
+                <label title="Regularization parameter">C (Penalty): 
+                    <input type="number" id="svmC" value="1.0" step="0.5" min="0.1">
+                </label>
+                <button id="toggleGridBtn" class="btn-secondary" onclick="toggleGrid()">Hide Grid</button>
+            </div>
+            <div class="row" style="margin-top: auto;">
+                <button class="btn-success" onclick="initializeSVM()">Initialize SVM</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-terminal" id="status-text">Ready.</div>
+    
+    <canvas id="canvas" width="860" height="480"></canvas>
+    
+    <div class="playback-bar controls">
+        <button id="btnPrevIter" class="btn-secondary" onclick="sendAction('prev_step')" disabled>⏪ Prev</button>
+        <button id="btnNextStep" class="btn-primary" onclick="sendAction('next_step')" disabled>Next Step ➡</button>
+        <div class="divider"></div>
+        <input type="number" id="jumpIters" value="50" min="1">
+        <span class="playback-label">Steps</span>
+        <button id="btnNextNIter" class="btn-warning" onclick="sendAction('next_n_iter')" disabled>Fast Forward ⏭</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('status-text');
+    
+    let dataset = []; 
+    let isInitialized = false; let serverData = null; let isGridVisible = true;
+    // 适配新的 860x480 比例
+    const minX = -5, maxX = 5; const minY = -2.79, maxY = 2.79; 
+
+    function cx(x) { return ((x - minX) / (maxX - minX)) * canvas.width; }
+    function cy(y) { return canvas.height - ((y - minY) / (maxY - minY)) * canvas.height; }
+    function sx(px) { return (px / canvas.width) * (maxX - minX) + minX; }
+    function sy(py) { return maxY - (py / canvas.height) * (maxY - minY); }
+
+    function toggleGrid() { isGridVisible = !isGridVisible; document.getElementById('toggleGridBtn').innerText = isGridVisible ? "Hide Grid" : "Show Grid"; isInitialized ? renderSVMState() : renderRawData(); }
+
+    function drawGrid() {
+        if (!isGridVisible) return;
+        ctx.lineWidth = 1;
+        // 网格线颜色调淡，适应新风格
+        for(let x = Math.ceil(minX); x <= Math.floor(maxX); x++) {
+            ctx.beginPath(); ctx.moveTo(cx(x), 0); ctx.lineTo(cx(x), canvas.height);
+            ctx.strokeStyle = (x === 0) ? '#adb5bd' : '#f1f3f5'; ctx.lineWidth = (x === 0) ? 1.5 : 1; ctx.stroke();
+        }
+        for(let y = Math.ceil(minY); y <= Math.floor(maxY); y++) {
+            ctx.beginPath(); ctx.moveTo(0, cy(y)); ctx.lineTo(canvas.width, cy(y));
+            ctx.strokeStyle = (y === 0) ? '#adb5bd' : '#f1f3f5'; ctx.lineWidth = (y === 0) ? 1.5 : 1; ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(cx(0), cy(0), 4, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#495057'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    function toggleMode() { const mode = document.getElementById('dataMode').value; document.getElementById('autoSettings').style.display = mode === 'auto' ? 'flex' : 'none'; document.getElementById('clickSettings').style.display = mode === 'click' ? 'flex' : 'none'; clearCanvas(); }
+    function togglePlaybackButtons(e) { ['btnPrevIter', 'btnNextStep', 'btnNextNIter', 'jumpIters'].forEach(id => { document.getElementById(id).disabled = !e; }); }
+    function randomGaussian() { let u1 = Math.random(), u2 = Math.random(); return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2); }
+
+    function addData(centerX, centerY, count, label) {
+        const std = 0.5;
+        for(let i = 0; i < count; i++) {
+            let x = centerX + randomGaussian() * std; let y = centerY + randomGaussian() * std;
+            dataset.push({ x: Math.max(minX, Math.min(maxX, x)), y: Math.max(minY, Math.min(maxY, y)), label: label });
+        }
+    }
+
+    function generateAutoData() {
+        clearCanvas();
+        const pts = Math.floor(parseInt(document.getElementById('autoPoints').value) / 2);
+        addData(-2, 1, pts, 1);   // Blue
+        addData(2, -1, pts, -1);  // Red
+        renderRawData();
+    }
+
+    canvas.addEventListener('mousedown', function(e) {
+        if (isInitialized || document.getElementById('dataMode').value !== 'click') return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = sx(e.clientX - rect.left), my = sy(e.clientY - rect.top);
+        const selectedClass = parseInt(document.querySelector('input[name="svmClass"]:checked').value);
+        dataset.push({ x: mx, y: my, label: selectedClass });
+        renderRawData();
+    });
+
+    function clearCanvas() { dataset = []; isInitialized = false; serverData = null; ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid(); statusText.innerText = "Ready."; togglePlaybackButtons(false); }
+
+    function initializeSVM() {
+        if(dataset.length < 2) { alert("Please generate some data first!"); return; }
+        let X = dataset.map(d => [d.x, d.y]); let y = dataset.map(d => d.label);
+        fetch('/api/svm/init', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ X: X, y: y, C: parseFloat(document.getElementById('svmC').value) })
+        }).then(res => res.json()).then(data => { 
+            if(data.error) { alert(data.error); return; }
+            serverData = data; isInitialized = true; togglePlaybackButtons(true); renderSVMState(); 
+        });
+    }
+
+    function sendAction(action) {
+        fetch('/api/svm/action', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: action, n: document.getElementById('jumpIters').value })
+        }).then(res => res.json()).then(data => { serverData = data; renderSVMState(); });
+    }
+
+    function drawHyperplane(w0, w1, offset, color, isDash, lineWidth) {
+        let pts = [];
+        if (Math.abs(w1) > 1e-5) {
+            let y1 = (-offset - w0 * minX) / w1; if (y1 >= minY && y1 <= maxY) pts.push([minX, y1]);
+            let y2 = (-offset - w0 * maxX) / w1; if (y2 >= minY && y2 <= maxY) pts.push([maxX, y2]);
+        }
+        if (Math.abs(w0) > 1e-5) {
+            let x1 = (-offset - w1 * minY) / w0; if (x1 >= minX && x1 <= maxX) pts.push([x1, minY]);
+            let x2 = (-offset - w1 * maxY) / w0; if (x2 >= minX && x2 <= maxX) pts.push([x2, maxY]);
+        }
+        if (pts.length >= 2) {
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = lineWidth;
+            if (isDash) ctx.setLineDash([8, 6]);
+            ctx.moveTo(cx(pts[0][0]), cy(pts[0][1])); ctx.lineTo(cx(pts[1][0]), cy(pts[1][1]));
+            ctx.stroke(); ctx.setLineDash([]);
+        }
+    }
+
+    function renderRawData() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid(); 
+        dataset.forEach(d => { 
+            ctx.beginPath(); ctx.arc(cx(d.x), cy(d.y), 4.5, 0, Math.PI * 2); 
+            ctx.fillStyle = d.label === 1 ? '#0d6efd' : '#dc3545'; ctx.fill(); 
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+        });
+        if (dataset.length > 0) statusText.innerText = `Data Points: ${dataset.length}`; 
+    }
+
+    function renderSVMState() {
+        const d = serverData; if(!d) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid();
+        
+        let w0 = d.w[0], w1 = d.w[1], b = d.b;
+
+        // 决策边界颜色调整为深灰，适应新风格
+        drawHyperplane(w0, w1, b - 1, '#0d6efd', true, 1.5); 
+        drawHyperplane(w0, w1, b + 1, '#dc3545', true, 1.5); 
+        drawHyperplane(w0, w1, b, '#212529', false, 3); 
+
+        for (let n = 0; n < d.X.length; n++) {
+            let x = d.X[n][0], y = d.X[n][1]; let label = d.y[n];
+            let margin_val = label * (w0 * x + w1 * y + b);
+            
+            if (margin_val <= 1.05 && d.step_count > 0) {
+                ctx.beginPath(); ctx.arc(cx(x), cy(y), 8, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ffc107'; ctx.lineWidth = 2.5; ctx.stroke();
+            }
+
+            ctx.beginPath(); ctx.arc(cx(x), cy(y), 4.5, 0, Math.PI * 2);
+            // 点的颜色匹配新的变量
+            ctx.fillStyle = label === 1 ? '#0d6efd' : '#dc3545'; ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+        }
+        
+        statusText.innerText = `Step: ${d.step_count} | ${d.current_action}`;
+        document.getElementById('btnPrevIter').disabled = (d.step_count === 0);
+    }
+
+    clearCanvas();
+</script>
+</body>
+</html>
