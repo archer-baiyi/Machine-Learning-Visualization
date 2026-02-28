@@ -65,7 +65,7 @@ If you want to run this project locally on your machine:
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/archer-baiyi/Machine-Learning-Virtualization.git](https://github.com/archer-baiyi/Machine-Learning-Virtualization.git)
+   git clone https://github.com/archer-baiyi/Machine-Learning-Virtualization.git
    cd Machine-Learning-Virtualization
    ```
 
