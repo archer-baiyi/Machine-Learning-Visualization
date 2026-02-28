@@ -36,6 +36,10 @@ def kmeans_page():
 def svm_page():
     return render_template('svm.html')
 
+@app.route('/basis')
+def basis_page():
+    return render_template('basis.html')
+
 # ==========================================
 # 1. GMM API
 # ==========================================
@@ -157,27 +161,25 @@ def handle_kmeans_action():
     return jsonify(kmeans_state_history[kmeans_current_index])
 
 # ==========================================
-# 3. SVM API (Linear SVM via Gradient Descent)
+# 3. SVM API
 # ==========================================
 @app.route('/api/svm/init', methods=['POST'])
 def init_svm_state():
     global svm_state_history, svm_current_index
     data = request.get_json()
     X = np.array(data.get('X', []))
-    y = np.array(data.get('y', [])) # Tags: +1 or -1
+    y = np.array(data.get('y', []))
     C = float(data.get('C', 1.0))
     
     if len(X) < 2 or len(np.unique(y)) < 2:
-        return jsonify({"error": "Need at least two points and both classes (+1 and -1) to train SVM."}), 400
+        return jsonify({"error": "Need at least two points and both classes (+1 and -1)."}), 400
 
     np.random.seed()
-    # Initialize weights randomly near zero
     w = np.random.randn(2) * 0.1
     b = 0.0
     
     initial_state = {
-        "X": X.tolist(), "y": y.tolist(), "C": C,
-        "w": w.tolist(), "b": b,
+        "X": X.tolist(), "y": y.tolist(), "C": C, "w": w.tolist(), "b": b,
         "step_count": 0, "iteration": 0, "current_action": "Initialization (Random Hyperplane)"
     }
     svm_state_history = [initial_state]
@@ -186,54 +188,36 @@ def init_svm_state():
 
 def compute_svm_next_step(current_state):
     next_state = copy.deepcopy(current_state)
-    X = np.array(next_state["X"])
-    y = np.array(next_state["y"])
-    w = np.array(next_state["w"])
-    b = next_state["b"]
-    C = next_state["C"]
+    X, y, w, b, C = np.array(next_state["X"]), np.array(next_state["y"]), np.array(next_state["w"]), next_state["b"], next_state["C"]
     
-    lr = 0.05 # Fixed learning rate for visual stability
-    
-    # Calculate margin: y_i * (w^T x_i + b)
+    lr = 0.05 
     margins = y * (np.dot(X, w) + b)
-    # Points inside the margin or misclassified (margin < 1)
     misclassified = margins < 1
     
-    # Gradients for Hinge Loss
-    # L = 1/2 ||w||^2 + C * sum(max(0, 1 - y_i(w^T x_i + b)))
     grad_w = w - C * np.dot(y[misclassified], X[misclassified])
     grad_b = -C * np.sum(y[misclassified])
     
-    w_new = w - lr * grad_w
-    b_new = b - lr * grad_b
-    
-    next_state["w"] = w_new.tolist()
-    next_state["b"] = b_new
+    next_state["w"] = (w - lr * grad_w).tolist()
+    next_state["b"] = b - lr * grad_b
     next_state["step_count"] += 1
     next_state["iteration"] += 1
     next_state["current_action"] = f"Gradient Step (Support Vectors: {np.sum(misclassified)})"
-    
     return next_state
 
 @app.route('/api/svm/action', methods=['POST'])
 def handle_svm_action():
     global svm_state_history, svm_current_index
     payload = request.get_json()
-    action = payload.get('action')
-    n = int(payload.get('n', 10))
+    action, n = payload.get('action'), int(payload.get('n', 10))
     
-    if action == 'prev_step' or action == 'prev_iter':
-        svm_current_index = max(0, svm_current_index - 1)
-    elif action == 'next_step' or action == 'next_iter':
-        if svm_current_index == len(svm_state_history) - 1:
-            svm_state_history.append(compute_svm_next_step(svm_state_history[svm_current_index]))
+    if action in ['prev_step', 'prev_iter']: svm_current_index = max(0, svm_current_index - 1)
+    elif action in ['next_step', 'next_iter']:
+        if svm_current_index == len(svm_state_history) - 1: svm_state_history.append(compute_svm_next_step(svm_state_history[svm_current_index]))
         svm_current_index += 1
     elif action == 'next_n_iter':
         for _ in range(n):
-            if svm_current_index == len(svm_state_history) - 1:
-                svm_state_history.append(compute_svm_next_step(svm_state_history[svm_current_index]))
+            if svm_current_index == len(svm_state_history) - 1: svm_state_history.append(compute_svm_next_step(svm_state_history[svm_current_index]))
             svm_current_index += 1
-
     return jsonify(svm_state_history[svm_current_index])
 
 if __name__ == '__main__':

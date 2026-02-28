@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Basis Functions & Linear Separability</title>
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            --bg-app: #f8f9fa;
+            --bg-panel: #ffffff;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --accent-purple: #8e44ad;
+            --shadow-soft: 0 4px 20px -5px rgba(0,0,0,0.08);
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-app);
+            display: flex; flex-direction: column; align-items: center; 
+            margin: 20px 0 60px 0; color: var(--text-primary);
+        }
+        
+        .top-nav { width: 1200px; margin-bottom: 20px; }
+        .btn-back { text-decoration: none; color: var(--text-secondary); font-weight: 600; font-size: 14px; transition: color 0.2s; }
+        .btn-back:hover { color: var(--accent-purple); }
+        
+        h1 { margin: 0 0 5px 0; font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+        .subtitle { color: var(--text-secondary); margin-bottom: 30px; font-size: 15px;}
+
+        .example-section {
+            background: var(--bg-panel);
+            width: 1200px; 
+            border-radius: 12px;
+            box-shadow: var(--shadow-soft);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-sizing: border-box;
+            border-top: 4px solid var(--accent-purple);
+        }
+
+        .ex-title { font-size: 20px; font-weight: 700; color: #2c3e50; margin: 0 0 10px 0; }
+        .ex-desc { font-size: 14px; color: #555; margin: 0 0 25px 0; line-height: 1.6; }
+        
+        .canvas-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px; 
+        }
+
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .canvas-label {
+            margin-top: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        canvas {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            width: 250px; 
+            height: 250px;
+        }
+
+        .arrow-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 10px;
+            min-width: 60px;
+        }
+        .arrow-col.math-arrow { 
+            min-width: 240px; 
+        }
+        
+        .math-expr {
+            font-size: 14px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .arrow-icon {
+            font-size: 26px;
+            color: var(--accent-purple);
+            line-height: 1;
+        }
+        
+        .linear-header { border-top-color: #3498db; }
+        .linear-header .arrow-icon { color: #3498db; }
+    </style>
+</head>
+<body>
+
+    <div class="top-nav"><a href="/" class="btn-back">&larr; Back to Dashboard</a></div>
+    <h1>Linear Classification with Basis Functions</h1>
+    <div class="subtitle">Visualizing how spatial transformations make complex non-linear data linearly separable</div>
+
+    <div class="example-section linear-header">
+        <h2 class="ex-title">Naturally Linearly Separable</h2>
+        <p class="ex-desc">When data clusters are completely distinct in their original feature space, a simple linear hyperplane (a straight line in 2D) is sufficient to separate them directly without any feature transformation.</p>
+        <div class="canvas-row">
+            <div class="canvas-container"><canvas id="c0-1"></canvas><div class="canvas-label">Original Space</div></div>
+            <div class="arrow-col"><div class="arrow-icon">➔</div></div>
+            <div class="canvas-container"><canvas id="c0-2"></canvas><div class="canvas-label">Linear Hyperplane</div></div>
+        </div>
+    </div>
+
+    <div class="example-section">
+        <h2 class="ex-title">Parallel Interleaved Stripes</h2>
+        <p class="ex-desc">Data distributed on parallel diagonal lines. Subtracting $x_1$ from $x_2$ and taking the absolute value folds the outer lines together, allowing a single straight line to isolate the center cluster.</p>
+        <div class="canvas-row">
+            <div class="canvas-container"><canvas id="c1-1"></canvas><div class="canvas-label">Original Data</div></div>
+            <div class="arrow-col"><div class="arrow-icon">➔</div></div>
+            <div class="canvas-container"><canvas id="c1-2"></canvas><div class="canvas-label">Decision Boundary</div></div>
+            <div class="arrow-col math-arrow">
+                <div class="math-expr">$\phi(\mathbf{x}) = |x_1 - x_2|$</div>
+                <div class="arrow-icon">➔</div>
+            </div>
+            <div class="canvas-container"><canvas id="c1-3"></canvas><div class="canvas-label">Mapped Space $(x_1, \phi)$</div></div>
+        </div>
+    </div>
+
+    <div class="example-section">
+        <h2 class="ex-title">Sinusoidal Curves</h2>
+        <p class="ex-desc">Data following a pure sine wave pattern with noise. By mapping the y-axis to subtract the underlying sinusoidal pattern, the oscillation is completely canceled out, aligning the classes horizontally.</p>
+        <div class="canvas-row">
+            <div class="canvas-container"><canvas id="c2-1"></canvas><div class="canvas-label">Original Data</div></div>
+            <div class="arrow-col"><div class="arrow-icon">➔</div></div>
+            <div class="canvas-container"><canvas id="c2-2"></canvas><div class="canvas-label">Decision Boundary</div></div>
+            <div class="arrow-col math-arrow">
+                <div class="math-expr">$\phi(\mathbf{x}) = x_2 - \sin(x_1)$</div>
+                <div class="arrow-icon">➔</div>
+            </div>
+            <div class="canvas-container"><canvas id="c2-3"></canvas><div class="canvas-label">Mapped Space $(x_1, \phi)$</div></div>
+        </div>
+    </div>
+
+    <div class="example-section">
+        <h2 class="ex-title">Rotated Alternating Quadrants</h2>
+        <p class="ex-desc">Classes alternate circularly. We first rotate the entire dataset by $45^\circ$, aligning the clusters to the axes. The data points are then clearly distinguished by the sign of the product of both coordinates.</p>
+        <div class="canvas-row">
+            <div class="canvas-container"><canvas id="c3-1"></canvas><div class="canvas-label">Original Data</div></div>
+            <div class="arrow-col"><div class="arrow-icon">➔</div></div>
+            <div class="canvas-container"><canvas id="c3-2"></canvas><div class="canvas-label">Decision Boundary</div></div>
+            <div class="arrow-col math-arrow">
+                <div class="math-expr" style="font-size: 13px; margin-bottom: 4px;">$\hat{\mathbf{x}} = \mathbf{x} \begin{bmatrix} \cos \frac{\pi}{4} & -\sin \frac{\pi}{4} \\ \sin \frac{\pi}{4} & \cos \frac{\pi}{4} \end{bmatrix}$</div>
+                <div class="math-expr">$\phi(\mathbf{x}) = \hat{x}_1\hat{x}_2$</div>
+                <div class="arrow-icon">➔</div>
+            </div>
+            <div class="canvas-container"><canvas id="c3-3"></canvas><div class="canvas-label">Mapped Space $(x_1, \phi)$</div></div>
+        </div>
+    </div>
+
+    <div class="example-section">
+        <h2 class="ex-title">Concentric Ellipsoids</h2>
+        <p class="ex-desc">The classes differ by radius, but the shape is a stretched and correlated ellipsoid. The basis function reverses this affine transformation, allowing the standard Euclidean ($L_2$) norm to easily distinguish the clusters.</p>
+        <div class="canvas-row">
+            <div class="canvas-container"><canvas id="c4-1"></canvas><div class="canvas-label">Original Data</div></div>
+            <div class="arrow-col"><div class="arrow-icon">➔</div></div>
+            <div class="canvas-container"><canvas id="c4-2"></canvas><div class="canvas-label">Decision Boundary</div></div>
+            <div class="arrow-col math-arrow">
+                <div class="math-expr">$\phi(\mathbf{x}) = \left\| \begin{bmatrix} x_1/2 \\ x_2 - x_1 \end{bmatrix} \right\|_2$</div>
+                <div class="arrow-icon">➔</div>
+            </div>
+            <div class="canvas-container"><canvas id="c4-3"></canvas><div class="canvas-label">Mapped Space $(x_1, \phi)$</div></div>
+        </div>
+    </div>
+
+    <div class="example-section">
+        <h2 class="ex-title">Parabolic Boundary ("U" Shape)</h2>
+        <p class="ex-desc">One class rests inside a parabolic "bowl" while the other surrounds it. By subtracting the quadratic term $x_1^2$ from $x_2$, the curved boundary is perfectly straightened into a horizontal line.</p>
+        <div class="canvas-row">
+            <div class="canvas-container"><canvas id="c5-1"></canvas><div class="canvas-label">Original Data</div></div>
+            <div class="arrow-col"><div class="arrow-icon">➔</div></div>
+            <div class="canvas-container"><canvas id="c5-2"></canvas><div class="canvas-label">Decision Boundary</div></div>
+            <div class="arrow-col math-arrow">
+                <div class="math-expr">$\phi(\mathbf{x}) = x_2 - x_1^2$</div>
+                <div class="arrow-icon">➔</div>
+            </div>
+            <div class="canvas-container"><canvas id="c5-3"></canvas><div class="canvas-label">Mapped Space $(x_1, \phi)$</div></div>
+        </div>
+    </div>
+
+    <div class="example-section">
+        <h2 class="ex-title">The Checkerboard Pattern</h2>
+        <p class="ex-desc">A highly non-linear grid of alternating classes. Using the product of two periodic sine functions folds this infinite 2D chessboard into just two distinct values on the new axis, easily separable by zero.</p>
+        <div class="canvas-row">
+            <div class="canvas-container"><canvas id="c6-1"></canvas><div class="canvas-label">Original Data</div></div>
+            <div class="arrow-col"><div class="arrow-icon">➔</div></div>
+            <div class="canvas-container"><canvas id="c6-2"></canvas><div class="canvas-label">Decision Boundary</div></div>
+            <div class="arrow-col math-arrow">
+                <div class="math-expr">$\phi(\mathbf{x}) = \sin(\frac{\pi}{2}x_1) \sin(\frac{\pi}{2}x_2)$</div>
+                <div class="arrow-icon">➔</div>
+            </div>
+            <div class="canvas-container"><canvas id="c6-3"></canvas><div class="canvas-label">Mapped Space $(x_1, \phi)$</div></div>
+        </div>
+    </div>
+
+    <div class="example-section">
+        <h2 class="ex-title">The Absolute Diamond ($L_1$ Norm)</h2>
+        <p class="ex-desc">Classes are separated by a sharp diamond shape. By mapping the coordinates to the sum of their absolute values (Manhattan Distance / $L_1$ Norm), the complex polygon collapses into a simple linear threshold.</p>
+        <div class="canvas-row">
+            <div class="canvas-container"><canvas id="c7-1"></canvas><div class="canvas-label">Original Data</div></div>
+            <div class="arrow-col"><div class="arrow-icon">➔</div></div>
+            <div class="canvas-container"><canvas id="c7-2"></canvas><div class="canvas-label">Decision Boundary</div></div>
+            <div class="arrow-col math-arrow">
+                <div class="math-expr">$\phi(\mathbf{x}) = |x_1| + |x_2|$</div>
+                <div class="arrow-icon">➔</div>
+            </div>
+            <div class="canvas-container"><canvas id="c7-3"></canvas><div class="canvas-label">Mapped Space $(x_1, \phi)$</div></div>
+        </div>
+    </div>
+
+<script>
+    class Plotter {
+        constructor(canvasId, minX, maxX, minY, maxY) {
+            this.canvas = document.getElementById(canvasId);
+            this.ctx = this.canvas.getContext('2d');
+            this.minX = minX; this.maxX = maxX;
+            this.minY = minY; this.maxY = maxY;
+            this.setupDPI();
+            this.drawGrid();
+        }
+
+        setupDPI() {
+            const width = 250; 
+            const height = 250;
+            const dpr = window.devicePixelRatio || 1;
+            
+            this.canvas.width = width * dpr;
+            this.canvas.height = height * dpr;
+            this.ctx.scale(dpr, dpr);
+            
+            this.w = width;
+            this.h = height;
+        }
+
+        cx(x) { return ((x - this.minX) / (this.maxX - this.minX)) * this.w; }
+        cy(y) { return this.h - ((y - this.minY) / (this.maxY - this.minY)) * this.h; }
+        
+        drawGrid() {
+            this.ctx.clearRect(0, 0, this.w, this.h);
+            this.ctx.lineWidth = 1;
+            for(let x = Math.ceil(this.minX); x <= Math.floor(this.maxX); x++) {
+                this.ctx.beginPath(); this.ctx.moveTo(this.cx(x), 0); this.ctx.lineTo(this.cx(x), this.h);
+                this.ctx.strokeStyle = (x === 0) ? '#a4b0be' : '#f1f2f6'; this.ctx.stroke();
+            }
+            for(let y = Math.ceil(this.minY); y <= Math.floor(this.maxY); y++) {
+                this.ctx.beginPath(); this.ctx.moveTo(0, this.cy(y)); this.ctx.lineTo(this.w, this.cy(y));
+                this.ctx.strokeStyle = (y === 0) ? '#a4b0be' : '#f1f2f6'; this.ctx.stroke();
+            }
+        }
+
+        drawPoints(points) {
+            points.forEach(p => {
+                this.ctx.beginPath();
+                let x = this.cx(p.x), y = this.cy(p.y);
+                this.ctx.arc(x, y, 4, 0, Math.PI * 2);
+                this.ctx.fillStyle = p.class === 1 ? '#3498db' : '#e74c3c';
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 1.5;
+                this.ctx.fill();
+                this.ctx.stroke();
+            });
+        }
+
+        drawFunction(fn, color = '#2c3e50', isDash = false) {
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = 2.5;
+            if (isDash) this.ctx.setLineDash([6, 6]);
+            
+            let started = false;
+            for(let x = this.minX; x <= this.maxX; x += (this.maxX - this.minX)/200) {
+                let y = fn(x);
+                if (y >= this.minY && y <= this.maxY) {
+                    if (!started) { this.ctx.moveTo(this.cx(x), this.cy(y)); started = true; } 
+                    else { this.ctx.lineTo(this.cx(x), this.cy(y)); }
+                } else { started = false; }
+            }
+            this.ctx.stroke();
+            this.ctx.setLineDash([]);
+        }
+
+        drawParametric(fx, fy, tMin, tMax, color = '#2c3e50') {
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = 2.5;
+            let started = false;
+            for(let t = tMin; t <= tMax; t += (tMax - tMin)/200) {
+                let x = fx(t), y = fy(t);
+                if (x >= this.minX && x <= this.maxX && y >= this.minY && y <= this.maxY) {
+                    if (!started) { this.ctx.moveTo(this.cx(x), this.cy(y)); started = true; } 
+                    else { this.ctx.lineTo(this.cx(x), this.cy(y)); }
+                } else { started = false; }
+            }
+            this.ctx.stroke();
+        }
+        
+        drawVerticalLine(x, color = '#2c3e50') {
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = 2.5;
+            this.ctx.moveTo(this.cx(x), 0);
+            this.ctx.lineTo(this.cx(x), this.h);
+            this.ctx.stroke();
+        }
+
+        drawPolygon(points, color = '#2c3e50') {
+            if(points.length === 0) return;
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = 2.5;
+            this.ctx.moveTo(this.cx(points[0][0]), this.cy(points[0][1]));
+            for(let i = 1; i < points.length; i++) {
+                this.ctx.lineTo(this.cx(points[i][0]), this.cy(points[i][1]));
+            }
+            this.ctx.closePath();
+            this.ctx.stroke();
+        }
+    }
+
+    function randn() { let u1=Math.random(), u2=Math.random(); return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2); }
+    function randRange(min, max) { return Math.random() * (max - min) + min; }
+
+    // ==========================================
+    // 0. Simple Linear
+    // ==========================================
+    let d0 = [];
+    for(let i=0; i<25; i++) { d0.push({x: randRange(0.5, 3.5), y: randRange(-3, 3), class: 1}); }
+    for(let i=0; i<25; i++) { d0.push({x: randRange(-3.5, -0.5), y: randRange(-3, 3), class: -1}); }
+    
+    let p0_1 = new Plotter('c0-1', -4, 4, -4, 4); p0_1.drawPoints(d0);
+    let p0_2 = new Plotter('c0-2', -4, 4, -4, 4); p0_2.drawPoints(d0); p0_2.drawVerticalLine(0);
+
+    // ==========================================
+    // 1. Parallel Stripes
+    // ==========================================
+    let d1 = [];
+    for(let x=-2.5; x<=2.5; x+=0.35) {
+        d1.push({x: x + randn()*0.15, y: x + randn()*0.15, class: 1});         
+        d1.push({x: x + randn()*0.15, y: x - 2 + randn()*0.15, class: -1});  
+        d1.push({x: x + randn()*0.15, y: x + 2 + randn()*0.15, class: -1});  
+    }
+    
+    let p1_1 = new Plotter('c1-1', -4, 4, -4, 4); p1_1.drawPoints(d1);
+    let p1_2 = new Plotter('c1-2', -4, 4, -4, 4); p1_2.drawPoints(d1); 
+    p1_2.drawFunction(x => x + 1.0, '#2c3e50'); p1_2.drawFunction(x => x - 1.0, '#2c3e50'); 
+    
+    let d1_mapped = d1.map(p => ({x: p.x, y: Math.abs(p.x - p.y), class: p.class}));
+    let p1_3 = new Plotter('c1-3', -4, 4, -0.5, 3); p1_3.drawPoints(d1_mapped);
+    p1_3.drawFunction(x => 1.0, '#2c3e50'); 
+
+    // ==========================================
+    // 2. Sine Wave
+    // ==========================================
+    let d2 = [];
+    for(let x=-5; x<=5; x+=0.25) {
+        d2.push({x: x + randn()*0.1, y: Math.sin(x) + 1.0 + randn()*0.25, class: 1});
+        d2.push({x: x + randn()*0.1, y: Math.sin(x) - 1.0 + randn()*0.25, class: -1});
+    }
+    
+    let p2_1 = new Plotter('c2-1', -5, 5, -3, 3); p2_1.drawPoints(d2);
+    let p2_2 = new Plotter('c2-2', -5, 5, -3, 3); p2_2.drawPoints(d2); 
+    p2_2.drawFunction(x => Math.sin(x), '#2c3e50');
+    
+    let d2_mapped = d2.map(p => ({x: p.x, y: p.y - Math.sin(p.x), class: p.class}));
+    let p2_3 = new Plotter('c2-3', -5, 5, -2.5, 2.5); p2_3.drawPoints(d2_mapped);
+    p2_3.drawFunction(x => 0, '#2c3e50');
+
+    // ==========================================
+    // 3. Rotated Alternating Quadrants
+    // ==========================================
+    let d3 = [];
+    for(let i=0; i<18; i++) {
+        let r = randRange(1.2, 3.2); let deg = randRange(55, 125);
+        d3.push({x: r*Math.cos(deg*Math.PI/180), y: r*Math.sin(deg*Math.PI/180), class: 1});
+        r = randRange(1.2, 3.2); deg = randRange(235, 305);
+        d3.push({x: r*Math.cos(deg*Math.PI/180), y: r*Math.sin(deg*Math.PI/180), class: 1});
+        r = randRange(1.2, 3.2); deg = randRange(-35, 35);
+        d3.push({x: r*Math.cos(deg*Math.PI/180), y: r*Math.sin(deg*Math.PI/180), class: -1});
+        r = randRange(1.2, 3.2); deg = randRange(145, 215);
+        d3.push({x: r*Math.cos(deg*Math.PI/180), y: r*Math.sin(deg*Math.PI/180), class: -1});
+    }
+
+    let p3_1 = new Plotter('c3-1', -4, 4, -4, 4); p3_1.drawPoints(d3);
+    let p3_2 = new Plotter('c3-2', -4, 4, -4, 4); p3_2.drawPoints(d3);
+    p3_2.drawFunction(x => x, '#2c3e50'); p3_2.drawFunction(x => -x, '#2c3e50');
+
+    let d3_mapped = d3.map(p => ({x: p.x, y: (p.x*p.x - p.y*p.y)/2, class: p.class}));
+    let p3_3 = new Plotter('c3-3', -4, 4, -4, 4); p3_3.drawPoints(d3_mapped);
+    p3_3.drawFunction(x => 0, '#2c3e50');
+
+    // ==========================================
+    // 4. Concentric Ellipsoids
+    // ==========================================
+    let d4 = [];
+    for(let deg=0; deg<360; deg+=15) {
+        let rad = deg * Math.PI / 180;
+        let r1 = 1.3 + randn()*0.15;
+        let u1 = r1 * Math.cos(rad), v1 = r1 * Math.sin(rad);
+        d4.push({x: 2*u1, y: v1 + 2*u1, class: 1});
+
+        let r2 = 3.6 + randn()*0.15;
+        let u2 = r2 * Math.cos(rad), v2 = r2 * Math.sin(rad);
+        d4.push({x: 2*u2, y: v2 + 2*u2, class: -1});
+    }
+
+    let p4_1 = new Plotter('c4-1', -10, 10, -10, 10); p4_1.drawPoints(d4);
+    let p4_2 = new Plotter('c4-2', -10, 10, -10, 10); p4_2.drawPoints(d4);
+    p4_2.drawParametric(t => 2 * (2.45*Math.cos(t)), t => 2.45*Math.sin(t) + 2*(2.45*Math.cos(t)), 0, Math.PI*2, '#2c3e50');
+
+    let d4_mapped = d4.map(p => {
+        let u = p.x/2; let v = p.y - p.x;
+        return {x: p.x, y: Math.sqrt(u*u + v*v), class: p.class};
+    });
+    let p4_3 = new Plotter('c4-3', -10, 10, 0, 5); p4_3.drawPoints(d4_mapped);
+    p4_3.drawFunction(x => 2.45, '#2c3e50');
+
+    // ==========================================
+    // 5. Parabola
+    // ==========================================
+    let d5 = [];
+    for(let i=0; i<30; i++) {
+        let x = randRange(-2.5, 2.5);
+        d5.push({x: x, y: x*x + 1.2 + randn()*0.3, class: 1});   
+        d5.push({x: x, y: x*x - 1.5 + randn()*0.3, class: -1});  
+    }
+    
+    let p5_1 = new Plotter('c5-1', -4, 4, -4, 9); p5_1.drawPoints(d5);
+    let p5_2 = new Plotter('c5-2', -4, 4, -4, 9); p5_2.drawPoints(d5); 
+    p5_2.drawFunction(x => x*x, '#2c3e50');
+    
+    let d5_mapped = d5.map(p => ({x: p.x, y: p.y - p.x*p.x, class: p.class}));
+    let p5_3 = new Plotter('c5-3', -4, 4, -4, 4); p5_3.drawPoints(d5_mapped);
+    p5_3.drawFunction(x => 0, '#2c3e50');
+
+    // ==========================================
+    // 6. Checkerboard
+    // ==========================================
+    let d6 = [];
+    for(let i=-3; i<=3; i+=2) {
+        for(let j=-3; j<=3; j+=2) {
+            let cls = (((i+3)/2 + (j+3)/2) % 2 === 0) ? 1 : -1;
+            for(let k=0; k<6; k++) {
+                d6.push({x: i + randRange(-0.6, 0.6), y: j + randRange(-0.6, 0.6), class: cls});
+            }
+        }
+    }
+    
+    let p6_1 = new Plotter('c6-1', -4.5, 4.5, -4.5, 4.5); p6_1.drawPoints(d6);
+    let p6_2 = new Plotter('c6-2', -4.5, 4.5, -4.5, 4.5); p6_2.drawPoints(d6); 
+    [-4, -2, 0, 2, 4].forEach(v => {
+        p6_2.drawFunction(x => v, '#2c3e50');
+        p6_2.drawVerticalLine(v, '#2c3e50');
+    });
+    
+    let d6_mapped = d6.map(p => ({x: p.x, y: Math.sin(Math.PI/2 * p.x) * Math.sin(Math.PI/2 * p.y), class: p.class}));
+    let p6_3 = new Plotter('c6-3', -4.5, 4.5, -1.5, 1.5); p6_3.drawPoints(d6_mapped);
+    p6_3.drawFunction(x => 0, '#2c3e50');
+
+    // ==========================================
+    // 7. L1 Norm Diamond
+    // ==========================================
+    let d7 = [];
+    for(let i=0; i<60; i++) {
+        let x = randRange(-4, 4), y = randRange(-4, 4);
+        let l1 = Math.abs(x) + Math.abs(y);
+        if(l1 < 1.8) {
+            d7.push({x: x, y: y, class: 1});
+        } else if (l1 > 2.6 && l1 < 4.5) {
+            d7.push({x: x, y: y, class: -1});
+        }
+    }
+    
+    let p7_1 = new Plotter('c7-1', -5, 5, -5, 5); p7_1.drawPoints(d7);
+    let p7_2 = new Plotter('c7-2', -5, 5, -5, 5); p7_2.drawPoints(d7); 
+    p7_2.drawPolygon([[0,2.2], [2.2,0], [0,-2.2], [-2.2,0]], '#2c3e50');
+    
+    let d7_mapped = d7.map(p => ({x: p.x, y: Math.abs(p.x) + Math.abs(p.y), class: p.class}));
+    let p7_3 = new Plotter('c7-3', -5, 5, 0, 5); p7_3.drawPoints(d7_mapped);
+    p7_3.drawFunction(x => 2.2, '#2c3e50');
+
+</script>
+</body>
+</html>

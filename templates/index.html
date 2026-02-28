@@ -10,18 +10,24 @@
         .category-section { width: 100%; max-width: 1070px; margin-bottom: 40px; }
         .category-title { color: #34495e; font-size: 24px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e0e6ed; width: 100%; text-align: left; }
         .dashboard { display: flex; gap: 25px; flex-wrap: wrap; justify-content: flex-start; }
+        
         .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 340px; padding: 25px; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; border-top: 5px solid #3498db; box-sizing: border-box; }
         .card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         .card h3 { margin: 0 0 10px 0; color: #2c3e50; font-size: 22px; }
         .card p { color: #7f8c8d; font-size: 14px; line-height: 1.5; margin: 0 0 25px 0; flex-grow: 1; }
         .btn-launch { text-align: center; background-color: #3498db; color: white; padding: 12px; text-decoration: none; font-weight: bold; border-radius: 6px; transition: background 0.2s; }
         .btn-launch:hover { background-color: #2980b9; }
+        
+        /* 针对不同算法的颜色定制 */
         .card.kmeans { border-top: 5px solid #2ecc71; }
         .card.kmeans .btn-launch { background-color: #2ecc71; }
         .card.kmeans .btn-launch:hover { background-color: #27ae60; }
         .card.svm { border-top: 5px solid #e74c3c; }
         .card.svm .btn-launch { background-color: #e74c3c; }
         .card.svm .btn-launch:hover { background-color: #c0392b; }
+        .card.basis { border-top: 5px solid #9b59b6; }
+        .card.basis .btn-launch { background-color: #9b59b6; }
+        .card.basis .btn-launch:hover { background-color: #8e44ad; }
     </style>
 </head>
 <body>
@@ -29,6 +35,23 @@
     <h1>Machine Learning Visualizations</h1>
     <div class="subtitle">Interactive educational tools for exploring ML algorithms</div>
     
+    <div class="category-section">
+        <h2 class="category-title">Classification (Supervised)</h2>
+        <div class="dashboard">
+            <div class="card svm">
+                <h3>Linear SVM</h3>
+                <p>Visualize the maximal margin hyperplane separating two classes. Watch the decision boundary and margins actively optimize the Hinge Loss using gradient descent.</p>
+                <a href="/svm" class="btn-launch">Launch SVM &rarr;</a>
+            </div>
+            
+            <div class="card basis">
+                <h3>Linear Classification with Basis Functions</h3>
+                <p>Visualizing how spatial transformations make complex non-linear data linearly separable.</p>
+                <a href="/basis" class="btn-launch">View Examples &rarr;</a>
+            </div>
+        </div>
+    </div>
+
     <div class="category-section">
         <h2 class="category-title">Clustering (Unsupervised)</h2>
         <div class="dashboard">
@@ -41,17 +64,6 @@
                 <h3>K-Means Clustering</h3>
                 <p>Explore hard assignment clustering. Watch centroids adjust iteratively to minimize variance within distinct groups, assigning each point to the nearest center.</p>
                 <a href="/kmeans" class="btn-launch">Launch K-Means &rarr;</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="category-section">
-        <h2 class="category-title">Classification (Supervised)</h2>
-        <div class="dashboard">
-            <div class="card svm">
-                <h3>Linear SVM (Gradient Descent)</h3>
-                <p>Visualize the maximal margin hyperplane separating two classes. Watch the decision boundary and margins actively optimize the Hinge Loss using gradient descent.</p>
-                <a href="/svm" class="btn-launch">Launch SVM &rarr;</a>
             </div>
         </div>
     </div>
