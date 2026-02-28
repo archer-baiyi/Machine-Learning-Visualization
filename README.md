@@ -6,7 +6,7 @@
 
 An interactive, web-based educational dashboard designed to visualize the inner workings of fundamental Machine Learning algorithms step-by-step. 
 
-**🚀 Live Demo:** [https://machine-learning-virtualization.onrender.com](https://machine-learning-virtualization.onrender.com)
+**🚀 Live Demo:** [https://machine-learning-visualization.onrender.com](https://machine-learning-visualization.onrender.com)
 
 > ⚠️ **Note:** The backend is hosted on Render's free tier. It goes to sleep after 15 minutes of inactivity, so **the initial load may take 1-2 minutes**. Please be patient! Once awake, all operations are instantaneous.
 
@@ -65,8 +65,8 @@ If you want to run this project locally on your machine:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/archer-baiyi/Machine-Learning-Virtualization.git
-   cd Machine-Learning-Virtualization
+   git clone https://github.com/archer-baiyi/Machine-Learning-Visualization.git
+   cd Machine-Learning-Visualization
    ```
 
 2. **Create a virtual environment (Optional but recommended):**
@@ -77,7 +77,7 @@ If you want to run this project locally on your machine:
 
 3. **Install dependencies:**
    ```bash
-   pip install Flask numpy scipy
+   pip install -r requirements.txt
    ```
 
 4. **Run the application:**
