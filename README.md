@@ -65,7 +65,7 @@ If you want to run this project locally on your machine:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/archer-baiyi/Machine-Learning-Visualization.git
+   git clone https://github.com/Archerui/Machine-Learning-Visualization.git
    cd Machine-Learning-Visualization
    ```
 
